@@ -27,6 +27,7 @@ runApp :: B.ByteString -> IO ()
 runApp c_ = do
   c <- Yaml.decodeThrow c_ :: IO AppConfig
   let settings = Warp.setPort (appPort c) $ Warp.setHost (fromString $ appHost c) Warp.defaultSettings
+  putStrLn $ "Listening on " ++ appHost c ++ ":" ++ show (appPort c)
   Warp.runSettings settings $ application c
   return ()
 

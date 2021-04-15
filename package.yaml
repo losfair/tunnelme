@@ -30,6 +30,7 @@ dependencies:
 - aeson
 - optparse-applicative
 - yaml
+- wai-websockets
 
 default-extensions:
 - OverloadedStrings

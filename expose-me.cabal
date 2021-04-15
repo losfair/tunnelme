@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: db09143bf5185ed45c61cdeafaa937f70ff1d05dc4fdbdd4055fd23180334afd
+-- hash: 42f3f901e001e95b3bd85157a05f05f0a0828a45ec3ad1aaf1bd51aa2805c785
 
 name:           expose-me
 version:        0.1.0.0
@@ -29,7 +29,6 @@ library
   exposed-modules:
       Lib
       Tunnel.Server.App
-      Tunnel.Server.Config
   other-modules:
       Paths_expose_me
   hs-source-dirs:
@@ -43,6 +42,7 @@ library
     , optparse-applicative
     , text
     , wai
+    , wai-websockets
     , warp
     , websockets
     , yaml
@@ -65,6 +65,7 @@ executable tclient
     , optparse-applicative
     , text
     , wai
+    , wai-websockets
     , warp
     , websockets
     , yaml
@@ -87,6 +88,7 @@ executable tserver
     , optparse-applicative
     , text
     , wai
+    , wai-websockets
     , warp
     , websockets
     , yaml
@@ -110,6 +112,7 @@ test-suite expose-me-test
     , optparse-applicative
     , text
     , wai
+    , wai-websockets
     , warp
     , websockets
     , yaml
