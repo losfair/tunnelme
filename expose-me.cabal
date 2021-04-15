@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 42f3f901e001e95b3bd85157a05f05f0a0828a45ec3ad1aaf1bd51aa2805c785
+-- hash: a9bb8fc5a32c7c45c1c3c344b59ee5f4ff6cf364ccadb8c65087f7e7e7217c79
 
 name:           expose-me
 version:        0.1.0.0
@@ -28,7 +28,10 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Tunnel.Mux.Control
+      Tunnel.Mux.Message
       Tunnel.Server.App
+      Tunnel.Server.Relay
   other-modules:
       Paths_expose_me
   hs-source-dirs:
@@ -37,9 +40,14 @@ library
   build-depends:
       aeson
     , base >=4.7 && <5
+    , binary
     , bytestring
+    , either
+    , hashable
+    , hashtables
     , http-types
     , optparse-applicative
+    , stm
     , text
     , wai
     , wai-websockets
@@ -59,10 +67,15 @@ executable tclient
   build-depends:
       aeson
     , base >=4.7 && <5
+    , binary
     , bytestring
+    , either
     , expose-me
+    , hashable
+    , hashtables
     , http-types
     , optparse-applicative
+    , stm
     , text
     , wai
     , wai-websockets
@@ -82,10 +95,15 @@ executable tserver
   build-depends:
       aeson
     , base >=4.7 && <5
+    , binary
     , bytestring
+    , either
     , expose-me
+    , hashable
+    , hashtables
     , http-types
     , optparse-applicative
+    , stm
     , text
     , wai
     , wai-websockets
@@ -106,10 +124,15 @@ test-suite expose-me-test
   build-depends:
       aeson
     , base >=4.7 && <5
+    , binary
     , bytestring
+    , either
     , expose-me
+    , hashable
+    , hashtables
     , http-types
     , optparse-applicative
+    , stm
     , text
     , wai
     , wai-websockets

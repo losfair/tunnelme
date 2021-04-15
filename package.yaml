@@ -31,6 +31,11 @@ dependencies:
 - optparse-applicative
 - yaml
 - wai-websockets
+- binary
+- either
+- hashtables
+- hashable
+- stm
 
 default-extensions:
 - OverloadedStrings
