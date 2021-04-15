@@ -1,4 +1,14 @@
-module Tunnel.Server.Relay where
+module Tunnel.Server.Relay (
+  StreamId,
+  Carrier,
+  StreamLifecycleCallback,
+  RelayState,
+  newRelay,
+  openConnection,
+  openStream,
+  closeStream,
+  sendMessageToStream,
+) where
 
 import qualified Data.HashTable.ST.Cuckoo as H
 import Control.Monad.ST
