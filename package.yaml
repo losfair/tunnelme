@@ -21,14 +21,44 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- wai
+- warp
+- websockets
+- bytestring
+- text
+- http-types
+- aeson
+- optparse-applicative
+- yaml
+
+default-extensions:
+- OverloadedStrings
+- LambdaCase
+- BlockArguments
+- FlexibleContexts
+- TemplateHaskell
+- ScopedTypeVariables
+- BangPatterns
+- RankNTypes
+- MagicHash
+- DeriveGeneric
 
 library:
   source-dirs: src
 
 executables:
-  expose-me-exe:
+  tserver:
     main:                Main.hs
-    source-dirs:         app
+    source-dirs:         app-tserver
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - expose-me
+  tclient:
+    main:                Main.hs
+    source-dirs:         app-tclient
     ghc-options:
     - -threaded
     - -rtsopts

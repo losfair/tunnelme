@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 654b6eb9f14d09f55a3b85488bd773a3ac35f58e6e211674dac982549a7a66fb
+-- hash: db09143bf5185ed45c61cdeafaa937f70ff1d05dc4fdbdd4055fd23180334afd
 
 name:           expose-me
 version:        0.1.0.0
@@ -28,24 +28,68 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Tunnel.Server.App
+      Tunnel.Server.Config
   other-modules:
       Paths_expose_me
   hs-source-dirs:
       src
+  default-extensions: OverloadedStrings LambdaCase BlockArguments FlexibleContexts TemplateHaskell ScopedTypeVariables BangPatterns RankNTypes MagicHash DeriveGeneric
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , http-types
+    , optparse-applicative
+    , text
+    , wai
+    , warp
+    , websockets
+    , yaml
   default-language: Haskell2010
 
-executable expose-me-exe
+executable tclient
   main-is: Main.hs
   other-modules:
       Paths_expose_me
   hs-source-dirs:
-      app
+      app-tclient
+  default-extensions: OverloadedStrings LambdaCase BlockArguments FlexibleContexts TemplateHaskell ScopedTypeVariables BangPatterns RankNTypes MagicHash DeriveGeneric
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , bytestring
     , expose-me
+    , http-types
+    , optparse-applicative
+    , text
+    , wai
+    , warp
+    , websockets
+    , yaml
+  default-language: Haskell2010
+
+executable tserver
+  main-is: Main.hs
+  other-modules:
+      Paths_expose_me
+  hs-source-dirs:
+      app-tserver
+  default-extensions: OverloadedStrings LambdaCase BlockArguments FlexibleContexts TemplateHaskell ScopedTypeVariables BangPatterns RankNTypes MagicHash DeriveGeneric
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , expose-me
+    , http-types
+    , optparse-applicative
+    , text
+    , wai
+    , warp
+    , websockets
+    , yaml
   default-language: Haskell2010
 
 test-suite expose-me-test
@@ -55,8 +99,18 @@ test-suite expose-me-test
       Paths_expose_me
   hs-source-dirs:
       test
+  default-extensions: OverloadedStrings LambdaCase BlockArguments FlexibleContexts TemplateHaskell ScopedTypeVariables BangPatterns RankNTypes MagicHash DeriveGeneric
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , bytestring
     , expose-me
+    , http-types
+    , optparse-applicative
+    , text
+    , wai
+    , warp
+    , websockets
+    , yaml
   default-language: Haskell2010
