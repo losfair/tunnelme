@@ -18,7 +18,7 @@ import Crypto.Random.Entropy (getEntropy)
 import qualified Data.ByteString.Base16 as Base16
 import Tunnel.Server.Relay
 import Control.Concurrent.STM (atomically, newTQueue, newTQueueIO, writeTQueue, readTQueue, TQueue)
-import Control.Monad (forever, forM_)
+import Control.Monad (forever, forM_, unless)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Control.Concurrent (forkIO, killThread)
 import qualified Tunnel.OpenProto as OpenProto
@@ -44,15 +44,15 @@ runApp c_ = do
   putStrLn $ "Listening on " ++ appHost c ++ ":" ++ show (appPort c)
   relay <- newRelay
   forkIO $ runDispatchQueue relay
-  Warp.runSettings settings $ websocketsOr defaultConnectionOptions (wsApp relay) $ application c
+  Warp.runSettings settings $ websocketsOr defaultConnectionOptions (wsApp c relay) $ application c
   return ()
 
 application :: AppConfig -> Wai.Application
 application c req respond = do
   respond $ Wai.responseLBS status200 [] "OK"
 
-wsApp :: RelaySt -> PendingConnection -> IO ()
-wsApp st pendingConn = do
+wsApp :: AppConfig -> RelaySt -> PendingConnection -> IO ()
+wsApp config st pendingConn = do
   let head = WS.pendingRequest pendingConn
   case WS.requestPath head of
     "/client" -> do
@@ -60,7 +60,7 @@ wsApp st pendingConn = do
       finally (handleWsClient st conn) (WS.sendClose conn ("close" :: B.ByteString))
     "/open" -> do
       conn <- acceptRequestWith pendingConn defaultAcceptRequest
-      finally (handleWsOpen st conn) (WS.sendClose conn ("close" :: B.ByteString))
+      finally (handleWsOpen config st conn) (WS.sendClose conn ("close" :: B.ByteString))
     _ -> WS.rejectRequest pendingConn "invalid request path"
   return ()
 
@@ -71,7 +71,7 @@ instance Carrier WS.Connection where
 
 handleWsClient :: RelaySt -> WS.Connection -> IO ()
 handleWsClient st conn = do
-  connId <- getEntropy 16 :: IO B.ByteString
+  connId <- getEntropy 8 :: IO B.ByteString
   let connIdStr = Base16.encode connId
   WS.sendTextData conn connIdStr
 
@@ -91,12 +91,14 @@ handleWsClient st conn = do
         WS.Text t _ -> return ()
         WS.Binary d -> atomically $ notifyIncomingMessage notifiers $ BL.toStrict d
 
-handleWsOpen :: RelaySt -> WS.Connection -> IO ()
-handleWsOpen st conn = do
+handleWsOpen :: AppConfig -> RelaySt -> WS.Connection -> IO ()
+handleWsOpen config st conn = do
   req_ <- WS.receiveDataMessage conn
   case req_ of
     WS.Text raw _ -> do
       forM_ (A.decode raw) $ \(req :: OpenProto.OpenRequest) -> do
+        unless (OpenProto.token req `elem` appTokens config) $
+          fail "invalid token"
         let peerID = Base16.decodeLenient $ encodeUtf8 $ OpenProto.peerID req
         let peerIDStr = decodeUtf8 $ Base16.encode peerID
         events <- newTQueueIO

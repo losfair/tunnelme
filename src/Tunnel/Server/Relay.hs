@@ -81,8 +81,9 @@ openConnection :: (Hashable k, Eq k, Carrier conn) => RelayState k conn -> k -> 
 openConnection st k conn = do
   current <- stToIO $ H.lookup (connections st) k
 
-  -- Close current connection
-  forM_ current (close . connBacking)
+  -- Don't allow duplicate connections (or in the rare case of 64-bit id collision)
+  forM_ current $ const $ fail "duplicate connection"
+
   nextStreamId_ <- newIORef 0
   streamTable <- stToIO H.new
   connClosed <- newTVarIO False

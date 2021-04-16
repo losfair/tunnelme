@@ -26,7 +26,8 @@ data Opts = Opts {
   remoteIP :: T.Text,
   remotePort :: Int,
   localIP :: String,
-  localPort :: String
+  localPort :: String,
+  userToken :: T.Text
 }
 
 main :: IO ()
@@ -44,6 +45,7 @@ argParser = Opts
   <*> (read <$> strOption (long "remote-port" <> help "remote port"))
   <*> strOption (long "local" <> help "local ip")
   <*> strOption (long "local-port" <> help "local port")
+  <*> strOption (long "token" <> help "token for authentication")
 
 argParseInfo :: ParserInfo Opts
 argParseInfo = info argParser (fullDesc <> progDesc "Open connection to server")
@@ -78,7 +80,7 @@ runLocalRelay opts local = do
 
 clientApp :: Opts -> Sock.Socket -> WS.Connection -> IO ()
 clientApp opts local conn = WS.withPingThread conn 10 (pure ()) do
-  let openMsg = OpenProto.OpenRequest (peerID opts) (remoteIP opts) (remotePort opts)
+  let openMsg = OpenProto.OpenRequest (peerID opts) (remoteIP opts) (remotePort opts) (userToken opts)
   WS.sendTextData conn $ A.encode openMsg
   ack <- WS.receiveDataMessage conn
 

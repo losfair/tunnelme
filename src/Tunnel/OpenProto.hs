@@ -7,7 +7,8 @@ import Data.Aeson (FromJSON, ToJSON)
 data OpenRequest = OpenRequest {
   peerID :: T.Text,
   remoteIP :: T.Text,
-  remotePort :: Int
+  remotePort :: Int,
+  token :: T.Text
 } deriving (Generic)
 
 instance FromJSON OpenRequest
