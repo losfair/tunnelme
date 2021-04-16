@@ -6,7 +6,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest, ubuntu-18.04]
     steps:
       - uses: actions/checkout@v2
       - uses: haskell/actions/setup@v1
