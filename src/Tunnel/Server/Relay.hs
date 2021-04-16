@@ -131,6 +131,8 @@ closeStream st k sid = do
     stream <- stToIO $ H.lookup (streams conn) sid
     forM_ stream $ \x -> do
       stToIO $ H.delete (streams conn) sid
+      let StreamId sidN = sid
+      sendMessage (connBacking conn) (connNotifiers conn) $ encodeMessage $ Control $ CloseStream sidN
       lcCb x StreamClosed
 
 sendMessageToStream :: (Hashable k, Eq k, Carrier conn) => RelayState k conn -> k -> StreamId -> B.ByteString -> IO ()
@@ -151,7 +153,7 @@ runDispatchQueue st = forever do
   catch task $ \(e :: SomeException) -> do
     putStrLn $ "[runDispatchQueue] exception: " ++ show e
 
-onIncomingMessage :: (Hashable k, Eq k) => RelayState k conn -> k -> B.ByteString -> IO ()
+onIncomingMessage :: (Hashable k, Eq k, Carrier conn) => RelayState k conn -> k -> B.ByteString -> IO ()
 onIncomingMessage st k raw = do
   forM_ (decodeMessage raw) $ \msg -> do
     let streamId = StreamId $ streamIdForMessage msg
@@ -166,6 +168,8 @@ onIncomingMessage st k raw = do
               when (current == Opening) do
                 writeIORef (color stream) Established
                 lcCb stream StreamReady
+            StreamBroken _ -> do
+              closeStream st k streamId
             _ -> return ()
         Payload _ d -> lcCb stream (IncomingData d)
 

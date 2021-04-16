@@ -16,6 +16,9 @@ data ControlMessage =
   } |
   StreamOpened {
     id :: Int64
+  } |
+  StreamBroken {
+    id :: Int64
   }
   deriving (Generic)
 

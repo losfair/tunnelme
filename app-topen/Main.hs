@@ -77,7 +77,7 @@ runLocalRelay opts local = do
     WS.runClient (serverName opts) (serverPort opts) "/open" $ clientApp opts local
 
 clientApp :: Opts -> Sock.Socket -> WS.Connection -> IO ()
-clientApp opts local conn = do
+clientApp opts local conn = WS.withPingThread conn 10 (pure ()) do
   let openMsg = OpenProto.OpenRequest (peerID opts) (remoteIP opts) (remotePort opts)
   WS.sendTextData conn $ A.encode openMsg
   ack <- WS.receiveDataMessage conn
