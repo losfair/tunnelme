@@ -14,6 +14,22 @@ jobs:
           ghc-version: '8.8.3'
           enable-stack: true
           stack-version: 'latest'
+      - name: Cache (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        uses: actions/cache@v2
+        with:
+          path: |
+            ./.stack-work
+            %LOCALAPPDATA%\Programs\stack
+          key: ${{ matrix.os }}-haskell-v1
+      - name: Cache (Unix)
+        if: ${{ matrix.os != 'windows-latest' }}
+        uses: actions/cache@v2
+        with:
+          path: |
+            ./.stack-work
+            ~/.stack
+          key: ${{ matrix.os }}-haskell-v1
       - name: Build
         run: make
       - name: Upload binary
