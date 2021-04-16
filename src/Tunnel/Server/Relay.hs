@@ -1,13 +1,17 @@
 module Tunnel.Server.Relay (
   StreamId,
-  Carrier,
+  Carrier(sendMessage, close),
   StreamLifecycleCallback,
+  StreamLifecycleEvent(StreamReady, IncomingData, StreamClosed),
   RelayState,
+  NotifierSet(notifyIncomingMessage, notifyCarrierBroken, isConnClosed),
   newRelay,
   openConnection,
   openStream,
   closeStream,
   sendMessageToStream,
+  enq,
+  runDispatchQueue,
 ) where
 
 import qualified Data.HashTable.ST.Cuckoo as H
@@ -24,10 +28,10 @@ import qualified Data.ByteString as B
 import qualified Data.Text as T
 import Tunnel.Mux.Control
 import Tunnel.Mux.Message
-import Control.Concurrent.STM (TQueue, newTQueueIO, writeTQueue, STM, newTVarIO, readTVar, TVar, stateTVar, atomically)
+import Control.Concurrent.STM (TQueue, newTQueueIO, writeTQueue, STM, newTVarIO, readTVar, TVar, stateTVar, atomically, readTQueue)
 
 newtype StreamId = StreamId Int64
-  deriving (Eq, Generic)
+  deriving (Eq, Generic, Show)
 
 instance Hashable StreamId
 
@@ -65,7 +69,6 @@ data NotifierSet = NotifierSet {
 
 class Carrier a where
   sendMessage :: a -> NotifierSet -> B.ByteString -> IO ()
-  recvMessage :: a -> NotifierSet -> IO B.ByteString
   close :: a -> IO ()
 
 newRelay :: IO (RelayState k conn)
@@ -74,7 +77,7 @@ newRelay = do
   pendingIOList <- newIORef []
   RelayState connTable <$> newTQueueIO
 
-openConnection :: (Hashable k, Eq k, Carrier conn) => RelayState k conn -> k -> conn -> IO ()
+openConnection :: (Hashable k, Eq k, Carrier conn) => RelayState k conn -> k -> conn -> IO NotifierSet
 openConnection st k conn = do
   current <- stToIO $ H.lookup (connections st) k
 
@@ -98,6 +101,7 @@ openConnection st k conn = do
     streams = streamTable
   }
   stToIO $ H.insert (connections st) k state
+  return notifiers
 
 openStream :: (Hashable k, Eq k, Carrier conn) => RelayState k conn -> k -> T.Text -> Int -> StreamLifecycleCallback -> IO (Maybe StreamId)
 openStream st k peerIP peerPort lifecycleCallback = do
@@ -140,6 +144,12 @@ sendMessageToStream st k sid payload = do
 
 enq :: RelayState k conn -> IO () -> STM ()
 enq st = writeTQueue (dispatchQueue st)
+
+runDispatchQueue :: RelayState k conn -> IO ()
+runDispatchQueue st = forever do
+  task <- atomically $ readTQueue (dispatchQueue st)
+  catch task $ \(e :: SomeException) -> do
+    putStrLn $ "[runDispatchQueue] exception: " ++ show e
 
 onIncomingMessage :: (Hashable k, Eq k) => RelayState k conn -> k -> B.ByteString -> IO ()
 onIncomingMessage st k raw = do

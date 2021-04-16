@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a9bb8fc5a32c7c45c1c3c344b59ee5f4ff6cf364ccadb8c65087f7e7e7217c79
+-- hash: bb94a378185c808aa38c462a090d6ec2598454de111e85bd54ccce77367cd5e2
 
 name:           expose-me
 version:        0.1.0.0
@@ -30,8 +30,10 @@ library
       Lib
       Tunnel.Mux.Control
       Tunnel.Mux.Message
+      Tunnel.OpenProto
       Tunnel.Server.App
       Tunnel.Server.Relay
+      Tunnel.Util
   other-modules:
       Paths_expose_me
   hs-source-dirs:
@@ -40,12 +42,15 @@ library
   build-depends:
       aeson
     , base >=4.7 && <5
+    , base16-bytestring >=1
     , binary
     , bytestring
+    , cryptonite
     , either
     , hashable
     , hashtables
     , http-types
+    , network
     , optparse-applicative
     , stm
     , text
@@ -53,6 +58,7 @@ library
     , wai-websockets
     , warp
     , websockets
+    , wuss
     , yaml
   default-language: Haskell2010
 
@@ -67,13 +73,16 @@ executable tclient
   build-depends:
       aeson
     , base >=4.7 && <5
+    , base16-bytestring >=1
     , binary
     , bytestring
+    , cryptonite
     , either
     , expose-me
     , hashable
     , hashtables
     , http-types
+    , network
     , optparse-applicative
     , stm
     , text
@@ -81,6 +90,39 @@ executable tclient
     , wai-websockets
     , warp
     , websockets
+    , wuss
+    , yaml
+  default-language: Haskell2010
+
+executable topen
+  main-is: Main.hs
+  other-modules:
+      Paths_expose_me
+  hs-source-dirs:
+      app-topen
+  default-extensions: OverloadedStrings LambdaCase BlockArguments FlexibleContexts TemplateHaskell ScopedTypeVariables BangPatterns RankNTypes MagicHash DeriveGeneric
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , base16-bytestring >=1
+    , binary
+    , bytestring
+    , cryptonite
+    , either
+    , expose-me
+    , hashable
+    , hashtables
+    , http-types
+    , network
+    , optparse-applicative
+    , stm
+    , text
+    , wai
+    , wai-websockets
+    , warp
+    , websockets
+    , wuss
     , yaml
   default-language: Haskell2010
 
@@ -95,13 +137,16 @@ executable tserver
   build-depends:
       aeson
     , base >=4.7 && <5
+    , base16-bytestring >=1
     , binary
     , bytestring
+    , cryptonite
     , either
     , expose-me
     , hashable
     , hashtables
     , http-types
+    , network
     , optparse-applicative
     , stm
     , text
@@ -109,6 +154,7 @@ executable tserver
     , wai-websockets
     , warp
     , websockets
+    , wuss
     , yaml
   default-language: Haskell2010
 
@@ -124,13 +170,16 @@ test-suite expose-me-test
   build-depends:
       aeson
     , base >=4.7 && <5
+    , base16-bytestring >=1
     , binary
     , bytestring
+    , cryptonite
     , either
     , expose-me
     , hashable
     , hashtables
     , http-types
+    , network
     , optparse-applicative
     , stm
     , text
@@ -138,5 +187,6 @@ test-suite expose-me-test
     , wai-websockets
     , warp
     , websockets
+    , wuss
     , yaml
   default-language: Haskell2010
