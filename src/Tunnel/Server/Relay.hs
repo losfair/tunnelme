@@ -99,25 +99,26 @@ openConnection st k conn = do
   }
   stToIO $ H.insert (connections st) k state
 
-openStream :: (Hashable k, Eq k, Carrier conn) => RelayState k conn -> k -> T.Text -> Int -> StreamLifecycleCallback -> IO StreamId
+openStream :: (Hashable k, Eq k, Carrier conn) => RelayState k conn -> k -> T.Text -> Int -> StreamLifecycleCallback -> IO (Maybe StreamId)
 openStream st k peerIP peerPort lifecycleCallback = do
-  conn <- fromJust <$> stToIO (H.lookup (connections st) k)
+  conn_ <- stToIO (H.lookup (connections st) k)
+  case conn_ of
+    Nothing -> return Nothing
+    Just conn -> Just <$> do
+      -- Allocate stream id
+      sid <- readIORef $ nextStreamId conn
+      writeIORef (nextStreamId conn) (sid + 1)
 
-  -- Allocate stream id
-  sid <- readIORef $ nextStreamId conn
-  writeIORef (nextStreamId conn) (sid + 1)
+      -- Create stream
+      stream <- StreamState
+        <$> newIORef Opening
+        <*> pure lifecycleCallback
+      stToIO $ H.insert (streams conn) (StreamId sid) stream
 
-  -- Create stream
-  stream <- StreamState
-    <$> newIORef Opening
-    <*> pure lifecycleCallback
-  stToIO $ H.insert (streams conn) (StreamId sid) stream
-
-  -- Send opening message
-  let msg = encodeMessage $ Control $ OpenStream sid peerIP peerPort
-  sendMessage (connBacking conn) (connNotifiers conn) msg
-  return $ StreamId sid
-
+      -- Send opening message
+      let msg = encodeMessage $ Control $ OpenStream sid peerIP peerPort
+      sendMessage (connBacking conn) (connNotifiers conn) msg
+      return $ StreamId sid
 
 closeStream :: (Hashable k, Eq k, Carrier conn) => RelayState k conn -> k -> StreamId -> IO ()
 closeStream st k sid = do
@@ -164,9 +165,12 @@ dropConnection st k closed = do
   when closing do
     let table = connections st
     callbacks <- stToIO do
-      x <- fromJust <$> H.lookup table k
-      H.delete table k
-      H.foldM (\p (_, v) -> pure (lcCb v:p)) [] (streams x)
+      x <- H.lookup table k
+      case x of
+        Nothing -> return []
+        Just x -> do
+          H.delete table k
+          H.foldM (\p (_, v) -> pure (lcCb v:p)) [] (streams x)
     mapM_ (\x -> x StreamClosed) callbacks
   where
     modifier False = (True, True)
