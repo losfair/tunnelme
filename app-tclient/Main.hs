@@ -21,9 +21,9 @@ import qualified Data.ByteString as B
 import Text.Printf (printf)
 import System.Exit (exitFailure, die)
 
-serverName = "localhost"
-serverPort = 9011
-serverSecure = False
+serverName = "t.invariant.cn"
+serverPort = 443
+serverSecure = True
 
 data LocalControl =
   LcStreamOpenOutput Int64 (Maybe Sock.Socket) |
