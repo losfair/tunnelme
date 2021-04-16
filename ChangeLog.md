@@ -1,3 +1,3 @@
-# Changelog for expose-me
+# Changelog for tunnelme
 
 ## Unreleased changes

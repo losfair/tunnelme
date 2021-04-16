@@ -1,10 +1,10 @@
-name:                expose-me
+name:                tunnelme
 version:             0.1.0.0
-github:              "githubuser/expose-me"
+github:              "losfair/tunnelme"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2021 Author name here"
+author:              "Heyang Zhou"
+maintainer:          "zhy20000919@hotmail.com"
+copyright:           "2021 Heyang Zhou"
 
 extra-source-files:
 - README.md
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/expose-me#readme>
+description:         Please see the README on GitHub at <https://github.com/losfair/tunnelme#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -65,7 +65,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - expose-me
+    - tunnelme
   tclient:
     main:                Main.hs
     source-dirs:         app-tclient
@@ -74,7 +74,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - expose-me
+    - tunnelme
   topen:
     main:                Main.hs
     source-dirs:         app-topen
@@ -83,10 +83,10 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - expose-me
+    - tunnelme
 
 tests:
-  expose-me-test:
+  tunnelme-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -94,4 +94,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - expose-me
+    - tunnelme

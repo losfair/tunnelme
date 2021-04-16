@@ -4,16 +4,16 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bb94a378185c808aa38c462a090d6ec2598454de111e85bd54ccce77367cd5e2
+-- hash: 83486bfc3da33b33b01a30cb820e518dfb31bc08952b4d12925eebd9b5f1f6a1
 
-name:           expose-me
+name:           tunnelme
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/expose-me#readme>
-homepage:       https://github.com/githubuser/expose-me#readme
-bug-reports:    https://github.com/githubuser/expose-me/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2021 Author name here
+description:    Please see the README on GitHub at <https://github.com/losfair/tunnelme#readme>
+homepage:       https://github.com/losfair/tunnelme#readme
+bug-reports:    https://github.com/losfair/tunnelme/issues
+author:         Heyang Zhou
+maintainer:     zhy20000919@hotmail.com
+copyright:      2021 Heyang Zhou
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -23,7 +23,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/expose-me
+  location: https://github.com/losfair/tunnelme
 
 library
   exposed-modules:
@@ -35,7 +35,7 @@ library
       Tunnel.Server.Relay
       Tunnel.Util
   other-modules:
-      Paths_expose_me
+      Paths_tunnelme
   hs-source-dirs:
       src
   default-extensions: OverloadedStrings LambdaCase BlockArguments FlexibleContexts TemplateHaskell ScopedTypeVariables BangPatterns RankNTypes MagicHash DeriveGeneric
@@ -65,7 +65,7 @@ library
 executable tclient
   main-is: Main.hs
   other-modules:
-      Paths_expose_me
+      Paths_tunnelme
   hs-source-dirs:
       app-tclient
   default-extensions: OverloadedStrings LambdaCase BlockArguments FlexibleContexts TemplateHaskell ScopedTypeVariables BangPatterns RankNTypes MagicHash DeriveGeneric
@@ -78,7 +78,6 @@ executable tclient
     , bytestring
     , cryptonite
     , either
-    , expose-me
     , hashable
     , hashtables
     , http-types
@@ -86,6 +85,7 @@ executable tclient
     , optparse-applicative
     , stm
     , text
+    , tunnelme
     , wai
     , wai-websockets
     , warp
@@ -97,7 +97,7 @@ executable tclient
 executable topen
   main-is: Main.hs
   other-modules:
-      Paths_expose_me
+      Paths_tunnelme
   hs-source-dirs:
       app-topen
   default-extensions: OverloadedStrings LambdaCase BlockArguments FlexibleContexts TemplateHaskell ScopedTypeVariables BangPatterns RankNTypes MagicHash DeriveGeneric
@@ -110,7 +110,6 @@ executable topen
     , bytestring
     , cryptonite
     , either
-    , expose-me
     , hashable
     , hashtables
     , http-types
@@ -118,6 +117,7 @@ executable topen
     , optparse-applicative
     , stm
     , text
+    , tunnelme
     , wai
     , wai-websockets
     , warp
@@ -129,7 +129,7 @@ executable topen
 executable tserver
   main-is: Main.hs
   other-modules:
-      Paths_expose_me
+      Paths_tunnelme
   hs-source-dirs:
       app-tserver
   default-extensions: OverloadedStrings LambdaCase BlockArguments FlexibleContexts TemplateHaskell ScopedTypeVariables BangPatterns RankNTypes MagicHash DeriveGeneric
@@ -142,7 +142,6 @@ executable tserver
     , bytestring
     , cryptonite
     , either
-    , expose-me
     , hashable
     , hashtables
     , http-types
@@ -150,6 +149,7 @@ executable tserver
     , optparse-applicative
     , stm
     , text
+    , tunnelme
     , wai
     , wai-websockets
     , warp
@@ -158,11 +158,11 @@ executable tserver
     , yaml
   default-language: Haskell2010
 
-test-suite expose-me-test
+test-suite tunnelme-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Paths_expose_me
+      Paths_tunnelme
   hs-source-dirs:
       test
   default-extensions: OverloadedStrings LambdaCase BlockArguments FlexibleContexts TemplateHaskell ScopedTypeVariables BangPatterns RankNTypes MagicHash DeriveGeneric
@@ -175,7 +175,6 @@ test-suite expose-me-test
     , bytestring
     , cryptonite
     , either
-    , expose-me
     , hashable
     , hashtables
     , http-types
@@ -183,6 +182,7 @@ test-suite expose-me-test
     , optparse-applicative
     , stm
     , text
+    , tunnelme
     , wai
     , wai-websockets
     , warp
