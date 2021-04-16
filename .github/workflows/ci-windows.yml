@@ -1,12 +1,9 @@
 on: [push]
-name: build.unix
+name: build.windows
 jobs:
   build:
     name: Build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest]
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
       - uses: haskell/actions/setup@v1
@@ -14,17 +11,10 @@ jobs:
           ghc-version: '8.8.3'
           enable-stack: true
           stack-version: 'latest'
-      - name: Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ./.stack-work
-            ~/.stack
-          key: ${{ matrix.os }}-haskell-v1
       - name: Build
         run: make
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.os }}-bin
+          name: ${{ runner.os }}-bin
           path: bin/
