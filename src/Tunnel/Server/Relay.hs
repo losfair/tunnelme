@@ -4,13 +4,13 @@ module Tunnel.Server.Relay (
   StreamLifecycleCallback,
   StreamLifecycleEvent(StreamReady, IncomingData, StreamClosed),
   RelayState,
-  NotifierSet(notifyIncomingMessage, notifyCarrierBroken, isConnClosed),
+  NotifierSet(notifyIncomingMessage, synchronouslyNotifyCarrierBroken, isConnClosed),
   newRelay,
   openConnection,
   openStream,
   closeStream,
   sendMessageToStream,
-  enq,
+  enq, enqSync,
   runDispatchQueue,
 ) where
 
@@ -63,7 +63,10 @@ data StreamColor = Opening | Established deriving (Eq)
 
 data NotifierSet = NotifierSet {
   notifyIncomingMessage :: B.ByteString -> STM (),
-  notifyCarrierBroken :: STM (),
+
+  -- This has to be synchronous: prevent reusing a connection after dropConnection.
+  synchronouslyNotifyCarrierBroken :: IO (),
+
   isConnClosed :: STM Bool
 }
 
@@ -90,7 +93,7 @@ openConnection st k conn = do
 
   -- Generate notifier set
   let notifiers = NotifierSet {
-    notifyCarrierBroken = enq st $ dropConnection st k connClosed,
+    synchronouslyNotifyCarrierBroken = enqSync st $ dropConnection st k connClosed,
     notifyIncomingMessage = enq st . onIncomingMessage st k,
     isConnClosed = readTVar connClosed
   }
@@ -148,11 +151,20 @@ sendMessageToStream st k sid payload = do
 enq :: RelayState k conn -> IO () -> STM ()
 enq st = writeTQueue (dispatchQueue st)
 
+enqSync :: RelayState k conn -> IO a -> IO a
+enqSync st x = do
+  ch <- newTQueueIO :: IO (TQueue (Either SomeException a))
+  atomically $ enq st $ try x >>= atomically . writeTQueue ch
+  v <- atomically $ readTQueue ch
+  case v of
+    Left e -> throwIO e
+    Right x -> return x
+
 runDispatchQueue :: RelayState k conn -> IO ()
 runDispatchQueue st = forever do
   task <- atomically $ readTQueue (dispatchQueue st)
   catch task $ \(e :: SomeException) -> do
-    putStrLn $ "[runDispatchQueue] exception: " ++ show e
+    putStrLn $ "[runDispatchQueue] uncaught exception: " ++ show e
 
 onIncomingMessage :: (Hashable k, Eq k, Carrier conn) => RelayState k conn -> k -> B.ByteString -> IO ()
 onIncomingMessage st k raw = do

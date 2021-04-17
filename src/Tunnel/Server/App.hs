@@ -94,12 +94,12 @@ handleWsClient st conn appSt = do
   let connIdStr = Base16.encode connId
   WS.sendBinaryData conn connPrivateId
 
-  notifiers <- relaySched st $ openConnection st connId conn
+  notifiers <- enqSync st $ openConnection st connId conn
 
   putStrLn $ "New connection: " ++ T.unpack (decodeUtf8 connIdStr)
   finally
     (run notifiers)
-    (atomically (notifyCarrierBroken notifiers)
+    (synchronouslyNotifyCarrierBroken notifiers
       >> putStrLn ("Connection closed: " ++ T.unpack (decodeUtf8 connIdStr)))
   return ()
 
@@ -121,7 +121,7 @@ handleWsOpen config st conn = do
         let peerID = Base16.decodeLenient $ encodeUtf8 $ OpenProto.peerID req
         let peerIDStr = decodeUtf8 $ Base16.encode peerID
         events <- newTQueueIO
-        streamId <- relaySched st $
+        streamId <- enqSync st $
           openStream st peerID (OpenProto.remoteIP req) (OpenProto.remotePort req)
             (atomically . writeTQueue events)
         forM_ streamId $ \streamId -> do
@@ -160,12 +160,6 @@ handleWsOpen config st conn = do
               WS.sendBinaryData conn d
               backward
             StreamClosed -> return ()
-
-relaySched :: RelaySt -> IO a -> IO a
-relaySched st x = do
-  ch <- newTQueueIO
-  atomically $ enq st $ x >>= atomically . writeTQueue ch
-  atomically $ readTQueue ch
 
 acquirePrivateId :: AppSt -> B.ByteString -> IO B.ByteString
 acquirePrivateId appSt reqId = do
