@@ -17,16 +17,26 @@ import Control.Exception
 import Crypto.Random.Entropy (getEntropy)
 import qualified Data.ByteString.Base16 as Base16
 import Tunnel.Server.Relay
-import Control.Concurrent.STM (atomically, newTQueue, newTQueueIO, writeTQueue, readTQueue, TQueue)
+import Control.Concurrent.STM (atomically, newTQueue, newTQueueIO, writeTQueue, readTQueue, TQueue, registerDelay, orElse, check, readTVar)
 import Control.Monad (forever, forM_, unless)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Control.Concurrent (forkIO, killThread)
 import qualified Tunnel.OpenProto as OpenProto
+import qualified Crypto.Hash as Hash
+import qualified Data.ByteArray as BA
+import qualified Data.HashTable.ST.Cuckoo as H
+import Control.Monad.ST (RealWorld, stToIO)
+import qualified StmContainers.Map as StmMap
+import Control.Monad.Fix (fix)
 
 data AppConfig = AppConfig {
   appPort :: Int,
   appHost :: String,
   appTokens :: [T.Text]
+}
+
+newtype AppSt = AppSt {
+  keepaliveSessions :: StmMap.Map B.ByteString (TQueue ())
 }
 
 type RelaySt = RelayState B.ByteString WS.Connection
@@ -44,20 +54,23 @@ runApp c_ = do
   putStrLn $ "Listening on " ++ appHost c ++ ":" ++ show (appPort c)
   relay <- newRelay
   forkIO $ runDispatchQueue relay
-  Warp.runSettings settings $ websocketsOr defaultConnectionOptions (wsApp c relay) $ application c
+
+  appSt <- AppSt
+    <$> StmMap.newIO
+  Warp.runSettings settings $ websocketsOr defaultConnectionOptions (wsApp c relay appSt) $ application c
   return ()
 
 application :: AppConfig -> Wai.Application
 application c req respond = do
   respond $ Wai.responseLBS status200 [] "OK"
 
-wsApp :: AppConfig -> RelaySt -> PendingConnection -> IO ()
-wsApp config st pendingConn = do
+wsApp :: AppConfig -> RelaySt -> AppSt -> PendingConnection -> IO ()
+wsApp config st appSt pendingConn = do
   let head = WS.pendingRequest pendingConn
   case WS.requestPath head of
     "/client" -> do
       conn <- acceptRequestWith pendingConn defaultAcceptRequest
-      finally (handleWsClient st conn) (WS.sendClose conn ("close" :: B.ByteString))
+      finally (handleWsClient st conn appSt) (WS.sendClose conn ("close" :: B.ByteString))
     "/open" -> do
       conn <- acceptRequestWith pendingConn defaultAcceptRequest
       finally (handleWsOpen config st conn) (WS.sendClose conn ("close" :: B.ByteString))
@@ -69,11 +82,17 @@ instance Carrier WS.Connection where
     WS.sendBinaryData conn d
   close conn = WS.sendClose conn ("close" :: B.ByteString)
 
-handleWsClient :: RelaySt -> WS.Connection -> IO ()
-handleWsClient st conn = do
-  connId <- getEntropy 8 :: IO B.ByteString
+handleWsClient :: RelaySt -> WS.Connection -> AppSt -> IO ()
+handleWsClient st conn appSt = do
+  msg <- WS.receiveDataMessage conn
+  connPrivateId <- case msg of
+    WS.Binary x -> acquirePrivateId appSt $ BL.toStrict x
+    _ -> fail "bad initial message"
+
+  let connId_ = Hash.hash connPrivateId :: Hash.Digest Hash.SHA256
+  let connId = B.pack $ take 8 (BA.unpack connId_)
   let connIdStr = Base16.encode connId
-  WS.sendTextData conn connIdStr
+  WS.sendBinaryData conn connPrivateId
 
   notifiers <- relaySched st $ openConnection st connId conn
 
@@ -147,3 +166,34 @@ relaySched st x = do
   ch <- newTQueueIO
   atomically $ enq st $ x >>= atomically . writeTQueue ch
   atomically $ readTQueue ch
+
+acquirePrivateId :: AppSt -> B.ByteString -> IO B.ByteString
+acquirePrivateId appSt reqId = do
+  if not $ B.null reqId then do
+    ch <- atomically (StmMap.lookup reqId $ keepaliveSessions appSt)
+    case ch of
+      Just ch -> do
+        atomically $ writeTQueue ch ()
+        return reqId
+      Nothing -> fallback
+  else fallback
+  where
+    fallback = do
+      -- Generate a new session
+      id <- getEntropy 32 :: IO B.ByteString
+      q <- newTQueueIO 
+      atomically (StmMap.insert q id $ keepaliveSessions appSt)
+
+      -- Session timeout
+      forkIO $ fix \f -> do
+        -- Two minutes
+        timeout <- registerDelay (120 * 1000 * 1000)
+        v <- atomically do
+          timeoutValue <- readTVar timeout
+          orElse (Left <$> check timeoutValue) (Right <$> readTQueue q)
+        case v of
+          Left _ -> do
+            putStrLn "Removing expired keepalive entry."
+            atomically $ StmMap.delete id $ keepaliveSessions appSt
+          Right _ -> f
+      return id

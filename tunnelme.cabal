@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 83486bfc3da33b33b01a30cb820e518dfb31bc08952b4d12925eebd9b5f1f6a1
+-- hash: ba454801e8e010cb586162811b4e094625bbd6bf65142a23a70c7270dd347c28
 
 name:           tunnelme
 version:        0.1.0.0
@@ -28,6 +28,9 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Tunnel.App.TClient
+      Tunnel.App.TOpen
+      Tunnel.App.TServer
       Tunnel.Mux.Control
       Tunnel.Mux.Message
       Tunnel.OpenProto
@@ -50,9 +53,11 @@ library
     , hashable
     , hashtables
     , http-types
+    , memory
     , network
     , optparse-applicative
     , stm
+    , stm-containers
     , text
     , wai
     , wai-websockets
@@ -81,9 +86,11 @@ executable tclient
     , hashable
     , hashtables
     , http-types
+    , memory
     , network
     , optparse-applicative
     , stm
+    , stm-containers
     , text
     , tunnelme
     , wai
@@ -113,9 +120,11 @@ executable topen
     , hashable
     , hashtables
     , http-types
+    , memory
     , network
     , optparse-applicative
     , stm
+    , stm-containers
     , text
     , tunnelme
     , wai
@@ -145,9 +154,11 @@ executable tserver
     , hashable
     , hashtables
     , http-types
+    , memory
     , network
     , optparse-applicative
     , stm
+    , stm-containers
     , text
     , tunnelme
     , wai
@@ -178,9 +189,11 @@ test-suite tunnelme-test
     , hashable
     , hashtables
     , http-types
+    , memory
     , network
     , optparse-applicative
     , stm
+    , stm-containers
     , text
     , tunnelme
     , wai

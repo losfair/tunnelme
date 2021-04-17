@@ -40,6 +40,8 @@ dependencies:
 - base16-bytestring >= 1
 - wuss
 - network
+- memory
+- stm-containers
 
 default-extensions:
 - OverloadedStrings
