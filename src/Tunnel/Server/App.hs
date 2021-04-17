@@ -90,7 +90,7 @@ instance Carrier WS.Connection where
   close conn = WS.sendClose conn ("close" :: B.ByteString)
 
 handleWsClient :: RelaySt -> WS.Connection -> AppSt -> IO ()
-handleWsClient st conn appSt = WS.withPingThread conn 25 (pure ()) do
+handleWsClient st conn appSt = WS.withPingThread conn 90 (pure ()) do
   msg <- WS.receiveDataMessage conn
   connPrivateId <- case msg of
     WS.Binary x -> acquirePrivateId appSt $ BL.toStrict x
@@ -98,21 +98,22 @@ handleWsClient st conn appSt = WS.withPingThread conn 25 (pure ()) do
 
   let connId_ = Hash.hash connPrivateId :: Hash.Digest Hash.SHA256
   let connId = B.pack $ take 8 (BA.unpack connId_)
-  let connIdStr = Base16.encode connId
+  let connIdStr = decodeUtf8 $ Base16.encode connId
   WS.sendBinaryData conn connPrivateId
 
   atomically $ writeTVar (pongHandler appSt) $ Just do
     session <- atomically $ StmMap.lookup connPrivateId $ keepaliveSessions appSt
     forM_ session $ \x -> do
+      putStrLn $ "Renewing session with " ++ T.unpack connIdStr
       atomically $ writeTQueue x ()
 
   notifiers <- enqSync st $ openConnection st connId conn
 
-  putStrLn $ "New connection: " ++ T.unpack (decodeUtf8 connIdStr)
+  putStrLn $ "New connection: " ++ T.unpack connIdStr
   finally
     (run notifiers)
     (synchronouslyNotifyCarrierBroken notifiers
-      >> putStrLn ("Connection closed: " ++ T.unpack (decodeUtf8 connIdStr)))
+      >> putStrLn ("Connection closed: " ++ T.unpack connIdStr))
   return ()
 
   where
