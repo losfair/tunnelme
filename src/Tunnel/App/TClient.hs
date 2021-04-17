@@ -25,9 +25,16 @@ import qualified Crypto.Hash as Hash
 import qualified Data.ByteArray as BA
 import Data.IORef
 
+{-
+serverName = "localhost"
+serverPort = 9011
+serverSecure = False
+-}
+
 serverName = "t.invariant.cn"
 serverPort = 443
 serverSecure = True
+
 
 data LocalControl =
   LcStreamOpenOutput Int64 (Maybe Sock.Socket) |
