@@ -42,6 +42,7 @@ dependencies:
 - network
 - memory
 - stm-containers
+- directory
 
 default-extensions:
 - OverloadedStrings

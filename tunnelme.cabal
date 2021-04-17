@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ba454801e8e010cb586162811b4e094625bbd6bf65142a23a70c7270dd347c28
+-- hash: cd9cec31c3ed6fa2f36c0f464909223c3b711f3992b92fbb3c4ef6ab43277d4f
 
 name:           tunnelme
 version:        0.1.0.0
@@ -49,6 +49,7 @@ library
     , binary
     , bytestring
     , cryptonite
+    , directory
     , either
     , hashable
     , hashtables
@@ -82,6 +83,7 @@ executable tclient
     , binary
     , bytestring
     , cryptonite
+    , directory
     , either
     , hashable
     , hashtables
@@ -116,6 +118,7 @@ executable topen
     , binary
     , bytestring
     , cryptonite
+    , directory
     , either
     , hashable
     , hashtables
@@ -150,6 +153,7 @@ executable tserver
     , binary
     , bytestring
     , cryptonite
+    , directory
     , either
     , hashable
     , hashtables
@@ -185,6 +189,7 @@ test-suite tunnelme-test
     , binary
     , bytestring
     , cryptonite
+    , directory
     , either
     , hashable
     , hashtables

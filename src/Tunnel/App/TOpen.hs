@@ -17,35 +17,54 @@ import Control.Concurrent (forkIO, killThread)
 import qualified Network.Socket.ByteString as SockBS
 import qualified Data.ByteString.Lazy as BL
 import Control.Concurrent.STM (TQueue, newTQueueIO, writeTQueue, atomically, readTQueue)
+import qualified Data.Yaml as Yaml
+import System.Directory (getHomeDirectory)
+import Data.Maybe (fromJust)
 
 data Opts = Opts {
-  serverSecure :: Bool,
-  serverName :: String,
-  serverPort :: Int,
+  configPath :: String,
   peerID :: T.Text,
   remoteIP :: T.Text,
   remotePort :: Int,
   localIP :: String,
   localPort :: String,
-  userToken :: T.Text
+  cfg :: Maybe Cfg
 }
+
+data Cfg = Cfg {
+  cfgServerSecure :: Bool,
+  cfgServerName :: String,
+  cfgServerPort :: Int,
+  cfgUserToken :: T.Text
+}
+
+instance A.FromJSON Cfg where
+  parseJSON = A.withObject "Cfg" $ \obj -> Cfg
+    <$> obj A..: "secure"
+    <*> obj A..: "server"
+    <*> obj A..: "port"
+    <*> obj A..: "token"
 
 main :: IO ()
 main = do
   opts <- execParser argParseInfo
-  beginListen opts
+  realConfigPath <-
+    if null (configPath opts) then
+      (++ "/.topen_config.yaml") <$> getHomeDirectory
+    else
+      pure (configPath opts)
+  cfgData <- Yaml.decodeFileThrow realConfigPath :: IO Cfg
+  beginListen opts { cfg = Just cfgData }
 
 argParser :: Parser Opts
 argParser = Opts
-  <$> switch (long "secure" <> help "secure connection")
-  <*> strOption (long "server" <> help "server name")
-  <*> (read <$> strOption (long "server-port" <> help "server port"))
+  <$> strOption (long "config" <> short 'c' <> value "" <> help "path to config (defaults to ~/.topen_config.yaml)")
   <*> strOption (long "peer" <> help "peer id")
   <*> strOption (long "remote" <> help "remote ip")
   <*> (read <$> strOption (long "remote-port" <> help "remote port"))
   <*> strOption (long "local" <> help "local ip")
   <*> strOption (long "local-port" <> help "local port")
-  <*> strOption (long "token" <> help "token for authentication")
+  <*> pure Nothing
 
 argParseInfo :: ParserInfo Opts
 argParseInfo = info argParser (fullDesc <> progDesc "Open connection to server")
@@ -73,14 +92,16 @@ beginListen opts = do
 
 runLocalRelay :: Opts -> Sock.Socket -> IO ()
 runLocalRelay opts local = do
-  if serverSecure opts then
-    Wuss.runSecureClient (serverName opts) (fromIntegral $ serverPort opts) "/open" $ clientApp opts local
+  let config = fromJust $ cfg opts
+  if cfgServerSecure config then
+    Wuss.runSecureClient (cfgServerName config) (fromIntegral $ cfgServerPort config) "/open" $ clientApp opts local
   else
-    WS.runClient (serverName opts) (serverPort opts) "/open" $ clientApp opts local
+    WS.runClient (cfgServerName config) (cfgServerPort config) "/open" $ clientApp opts local
 
 clientApp :: Opts -> Sock.Socket -> WS.Connection -> IO ()
 clientApp opts local conn = WS.withPingThread conn 10 (pure ()) do
-  let openMsg = OpenProto.OpenRequest (peerID opts) (remoteIP opts) (remotePort opts) (userToken opts)
+  let config = fromJust $ cfg opts
+  let openMsg = OpenProto.OpenRequest (peerID opts) (remoteIP opts) (remotePort opts) (cfgUserToken config)
   WS.sendTextData conn $ A.encode openMsg
   ack <- WS.receiveDataMessage conn
 
