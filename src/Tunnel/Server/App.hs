@@ -17,7 +17,7 @@ import Control.Exception
 import Crypto.Random.Entropy (getEntropy)
 import qualified Data.ByteString.Base16 as Base16
 import Tunnel.Server.Relay
-import Control.Concurrent.STM (atomically, newTQueue, newTQueueIO, writeTQueue, readTQueue, TQueue, registerDelay, orElse, check, readTVar)
+import Control.Concurrent.STM (atomically, newTQueue, newTQueueIO, writeTQueue, readTQueue, TQueue, registerDelay, orElse, check, readTVar, TVar, newTVar, newTVarIO, readTVarIO, writeTVar)
 import Control.Monad (forever, forM_, unless)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Control.Concurrent (forkIO, killThread)
@@ -35,8 +35,9 @@ data AppConfig = AppConfig {
   appTokens :: [T.Text]
 }
 
-newtype AppSt = AppSt {
-  keepaliveSessions :: StmMap.Map B.ByteString (TQueue ())
+data AppSt = AppSt {
+  keepaliveSessions :: StmMap.Map B.ByteString (TQueue ()),
+  pongHandler :: TVar (Maybe (IO ()))
 }
 
 type RelaySt = RelayState B.ByteString WS.Connection
@@ -57,8 +58,14 @@ runApp c_ = do
 
   appSt <- AppSt
     <$> StmMap.newIO
+    <*> newTVarIO Nothing
+  let connOpts = defaultConnectionOptions { WS.connectionOnPong = runPongHandler appSt }
   Warp.runSettings settings $ websocketsOr defaultConnectionOptions (wsApp c relay appSt) $ application c
   return ()
+  where
+    runPongHandler appSt = do
+      v <- readTVarIO $ pongHandler appSt
+      forM_ v id
 
 application :: AppConfig -> Wai.Application
 application c req respond = do
@@ -83,7 +90,7 @@ instance Carrier WS.Connection where
   close conn = WS.sendClose conn ("close" :: B.ByteString)
 
 handleWsClient :: RelaySt -> WS.Connection -> AppSt -> IO ()
-handleWsClient st conn appSt = do
+handleWsClient st conn appSt = WS.withPingThread conn 25 (pure ()) do
   msg <- WS.receiveDataMessage conn
   connPrivateId <- case msg of
     WS.Binary x -> acquirePrivateId appSt $ BL.toStrict x
@@ -93,6 +100,11 @@ handleWsClient st conn appSt = do
   let connId = B.pack $ take 8 (BA.unpack connId_)
   let connIdStr = Base16.encode connId
   WS.sendBinaryData conn connPrivateId
+
+  atomically $ writeTVar (pongHandler appSt) $ Just do
+    session <- atomically $ StmMap.lookup connPrivateId $ keepaliveSessions appSt
+    forM_ session $ \x -> do
+      atomically $ writeTQueue x ()
 
   notifiers <- enqSync st $ openConnection st connId conn
 
